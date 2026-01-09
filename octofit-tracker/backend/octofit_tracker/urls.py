@@ -16,9 +16,33 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+
+import os
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+
+def get_api_base_url(request):
+    codespace_name = os.environ.get('CODESPACE_NAME')
+    if codespace_name:
+        return f"https://{codespace_name}-8000.app.github.dev/api/"
+    # fallback to localhost
+    return f"http://localhost:8000/api/"
+
+@api_view(['GET'])
+def api_root(request, format=None):
+    api_base = get_api_base_url(request)
+    return Response({
+        'users': api_base + 'users/',
+        'teams': api_base + 'teams/',
+        'activities': api_base + 'activities/',
+        'leaderboard': api_base + 'leaderboard/',
+        'workouts': api_base + 'workouts/',
+    })
+
 
 router = DefaultRouter()
+from . import views
 router.register(r'users', views.UserViewSet, basename='user')
 router.register(r'teams', views.TeamViewSet, basename='team')
 router.register(r'activities', views.ActivityViewSet, basename='activity')
@@ -28,5 +52,5 @@ router.register(r'workouts', views.WorkoutViewSet, basename='workout')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
-    path('', views.api_root, name='api-root'),
+    path('', api_root, name='api-root'),
 ]
